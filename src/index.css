@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #F0FBF4;
+  --color-primary-100: #D5F2E0;
+  --color-primary-200: #B0E5C5;
+  --color-primary-300: #79D49C;
+  --color-primary-400: #38A862;
+  --color-primary-500: #044A1A;
+  --color-primary-600: #033D16;
+  --color-primary-700: #023012;
+  --color-primary-800: #01240D;
+  --color-primary-900: #011809;
+
+  --color-secondary-50: #F0FDF9;
+  --color-secondary-100: #CCFBEF;
+  --color-secondary-500: #0D7C5F;
+  --color-secondary-700: #085A45;
+
+  --color-neutral-50: #F7F7F7;
+  --color-neutral-100: #EBEBEB;
+  --color-neutral-200: #DDDDDD;
+  --color-neutral-300: #B0B0B0;
+  --color-neutral-400: #717171;
+  --color-neutral-500: #484848;
+  --color-neutral-600: #222222;
+
+  --color-success: #10B981;
+  --color-warning: #FFB400;
+  --color-error: #C13515;
+
+  --font-sans: 'Inter', 'Helvetica Neue', 'Arial', sans-serif;
+  --font-heading: 'Inter', sans-serif;
+
+  --shadow-card: 0 6px 20px rgba(0, 0, 0, 0.12);
+  --shadow-card-hover: 0 6px 20px rgba(0, 0, 0, 0.2);
+  --shadow-search: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-search-hover: 0 2px 4px rgba(0, 0, 0, 0.18);
+  --shadow-sticky: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+
+  --container-narrow: 720px;
+  --container-container: 1280px;
+}
+
+@layer base {
+  body {
+    @apply text-neutral-600 antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-600 transition-colors;
+  }
+  .btn-secondary {
+    @apply border border-neutral-600 text-neutral-600 px-6 py-3 rounded-lg font-medium hover:bg-neutral-50 transition-colors;
+  }
+  .btn-ghost {
+    @apply text-neutral-500 px-4 py-2 rounded-lg hover:bg-neutral-50 transition-colors;
+  }
+  .card {
+    @apply bg-white rounded-xl shadow-card overflow-hidden;
+  }
+  .input-field {
+    @apply w-full border border-neutral-200 rounded-lg px-4 py-3 text-neutral-600 placeholder-neutral-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+  }
+}
