@@ -14,7 +14,6 @@ import {
   HiMapPin,
   HiCurrencyDollar,
   HiSparkles,
-  HiInformationCircle,
 } from 'react-icons/hi2';
 import { listingApi } from '../../../services/api/listingApi';
 import { uploadApi } from '../../../services/api/uploadApi';

@@ -8,7 +8,6 @@ import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Skeleton from '../../../components/ui/Skeleton';
-import RatingDisplay from '../../../components/listing/RatingDisplay';
 import type { Booking } from '../../../types';
 
 const ProfilePage: React.FC = () => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { HiAdjustmentsHorizontal, HiXMark, HiMapPin } from 'react-icons/hi2';
 import { listingApi } from '../../../services/api/listingApi';
 import { categoryApi } from '../../../services/api/categoryApi';
@@ -39,7 +39,6 @@ const CITY_OPTIONS = [
 
 const SearchResultsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { categories } = useAppSelector((state) => state.category);
 

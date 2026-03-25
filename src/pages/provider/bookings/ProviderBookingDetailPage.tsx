@@ -7,13 +7,11 @@ import {
   HiCalendarDays,
   HiUserGroup,
   HiCurrencyDollar,
-  HiChatBubbleLeftRight,
   HiPhone,
   HiEnvelope,
   HiMapPin,
   HiClock,
   HiDocumentText,
-  HiExclamationTriangle,
 } from 'react-icons/hi2';
 import { bookingApi } from '../../../services/api/bookingApi';
 import { reviewApi } from '../../../services/api/reviewApi';

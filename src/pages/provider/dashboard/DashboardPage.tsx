@@ -23,7 +23,6 @@ import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import Skeleton from '../../../components/ui/Skeleton';
-import Avatar from '../../../components/ui/Avatar';
 import Table from '../../../components/ui/Table';
 import type { TableColumn } from '../../../components/ui/Table';
 import toast from 'react-hot-toast';

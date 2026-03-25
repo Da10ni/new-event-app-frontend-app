@@ -15,14 +15,13 @@ import Button from "../../../components/ui/Button";
 import TextArea from "../../../components/ui/TextArea";
 import Skeleton from "../../../components/ui/Skeleton";
 import RatingDisplay from "../../../components/listing/RatingDisplay";
-import PriceTag from "../../../components/listing/PriceTag";
 import type { Listing } from "../../../types";
 
 const BookingPage: React.FC = () => {
   const { listingId } = useParams<{ listingId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  useAppSelector((state) => state.auth);
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);

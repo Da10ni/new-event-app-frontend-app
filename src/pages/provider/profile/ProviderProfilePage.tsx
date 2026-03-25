@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  HiUserCircle,
   HiBuildingStorefront,
   HiPhone,
   HiEnvelope,
@@ -8,7 +7,6 @@ import {
   HiMapPin,
   HiClock,
   HiCheckBadge,
-  HiStar,
   HiCalendarDays,
   HiSignal,
   HiSignalSlash,
@@ -28,7 +26,6 @@ import Avatar from '../../../components/ui/Avatar';
 import StarRating from '../../../components/ui/StarRating';
 import LoadingSpinner from '../../../components/feedback/LoadingSpinner';
 import toast from 'react-hot-toast';
-import type { Vendor } from '../../../types';
 
 const CITIES = [
   { value: 'Lahore', label: 'Lahore' },

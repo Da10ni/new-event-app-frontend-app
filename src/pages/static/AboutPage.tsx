@@ -1,5 +1,5 @@
 import React from 'react';
-import { HiOutlineHeart, HiOutlineGlobeAlt, HiOutlineUserGroup, HiOutlineLightBulb, HiOutlineShieldCheck, HiOutlineSparkles } from 'react-icons/hi2';
+import { HiOutlineHeart, HiOutlineGlobeAlt, HiOutlineLightBulb, HiOutlineShieldCheck } from 'react-icons/hi2';
 import Button from '../../components/ui/Button';
 
 const TEAM_MEMBERS = [
