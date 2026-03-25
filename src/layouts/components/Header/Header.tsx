@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   HiBell,
   HiBars3,
@@ -12,6 +12,7 @@ import {
   HiArrowRightOnRectangle,
   HiSquares2X2,
   HiRectangleStack,
+  HiChatBubbleLeftEllipsis,
 } from 'react-icons/hi2';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { clearAuth } from '../../../store/slices/authSlice';
@@ -20,12 +21,32 @@ import Avatar from '../../../components/ui/Avatar';
 import Dropdown from '../../../components/ui/Dropdown';
 import SearchBar from '../../../components/search/SearchBar';
 import Button from '../../../components/ui/Button';
+import { messageApi } from '../../../services/api/messageApi';
 
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const { isAuthenticated, user, role, refreshToken } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isOnInbox = location.pathname === '/inbox' || location.pathname === '/provider/inbox';
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await messageApi.getUnreadCount();
+      setUnreadMessages(res.data.data.count || 0);
+    } catch {
+      // silently fail
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
 
   const handleLogout = async () => {
     try {
@@ -54,6 +75,7 @@ const Header: React.FC = () => {
 
   const clientMenuItems = [
     { key: 'profile', label: 'Profile', icon: <HiUser />, onClick: () => navigate('/profile') },
+    { key: 'messages', label: 'Messages', icon: <HiChatBubbleLeftEllipsis />, onClick: () => navigate('/inbox') },
     { key: 'bookings', label: 'Bookings', icon: <HiTicket />, onClick: () => navigate('/my-bookings') },
     { key: 'wishlists', label: 'Wishlists', icon: <HiHeart />, onClick: () => navigate('/wishlists') },
     { key: 'settings', label: 'Settings', icon: <HiCog6Tooth />, onClick: () => navigate('/settings') },
@@ -97,6 +119,14 @@ const Header: React.FC = () => {
 
             {isAuthenticated && user ? (
               <>
+                {/* Messages */}
+                <Link to={isVendor ? '/provider/inbox' : '/inbox'} className="relative p-2.5 rounded-full hover:bg-neutral-50 transition-colors text-neutral-500">
+                  <HiChatBubbleLeftEllipsis className="h-5 w-5" />
+                  {unreadMessages > 0 && !isOnInbox && (
+                    <span className="absolute top-2 right-2 h-2 w-2 bg-primary-500 rounded-full" />
+                  )}
+                </Link>
+
                 {/* Notification bell */}
                 <button className="relative p-2.5 rounded-full hover:bg-neutral-50 transition-colors text-neutral-500">
                   <HiBell className="h-5 w-5" />
@@ -215,6 +245,13 @@ const Header: React.FC = () => {
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Profile
+                    </Link>
+                    <Link
+                      to="/inbox"
+                      className="block px-4 py-3 text-sm text-neutral-500 hover:bg-neutral-50 rounded-xl transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Messages
                     </Link>
                     <Link
                       to="/my-bookings"

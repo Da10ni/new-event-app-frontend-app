@@ -15,7 +15,8 @@ import {
   HiArrowRight,
   HiExclamationTriangle,
 } from 'react-icons/hi2';
-import { useAppSelector } from '../../../store/hooks';
+import { useAppSelector, useAppDispatch } from '../../../store/hooks';
+import { setVendor } from '../../../store/slices/authSlice';
 import { vendorApi } from '../../../services/api/vendorApi';
 import { bookingApi } from '../../../services/api/bookingApi';
 import Card from '../../../components/ui/Card';
@@ -98,6 +99,7 @@ const formatDate = (dateStr: string) => {
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { user, vendor } = useAppSelector((state) => state.auth);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
@@ -122,10 +124,18 @@ const DashboardPage: React.FC = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [bookingsRes, listingsRes] = await Promise.all([
+      const [bookingsRes, listingsRes, vendorRes] = await Promise.all([
         vendorApi.getMyBookings({ limit: 50 }),
         vendorApi.getMyListings({ limit: 100 }),
+        vendorApi.getMyProfile(),
       ]);
+
+      // Refresh vendor status from backend
+      const vendorData = vendorRes.data?.data?.vendor;
+      if (vendorData) {
+        dispatch(setVendor(vendorData));
+        localStorage.setItem('auth_vendor', JSON.stringify(vendorData));
+      }
 
       const bookings = bookingsRes.data?.data?.bookings || [];
       const listings = listingsRes.data?.data?.listings || [];
@@ -432,20 +442,18 @@ const DashboardPage: React.FC = () => {
           <h3 className="text-lg font-semibold text-neutral-600 mb-4">Revenue Overview</h3>
           <div className="flex items-end gap-2 h-48">
             {revenueData.map((d) => {
-              const height = maxRevenue > 0 ? (d.amount / maxRevenue) * 100 : 0;
+              const heightPx = maxRevenue > 0 ? (d.amount / maxRevenue) * 160 : 0;
               return (
-                <div key={d.month} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-neutral-400 font-medium">
+                <div key={d.month} className="flex-1 flex flex-col items-center justify-end h-full">
+                  <span className="text-[10px] text-neutral-400 font-medium mb-1">
                     {d.amount > 0 ? `$${(d.amount / 1000).toFixed(0)}k` : ''}
                   </span>
-                  <div className="w-full flex justify-center">
-                    <div
-                      className="w-full max-w-[32px] bg-primary-500 rounded-t-md transition-all duration-500 hover:bg-primary-600 min-h-[2px]"
-                      style={{ height: `${Math.max(height, 2)}%` }}
-                      title={`${d.month}: ${formatCurrency(d.amount)}`}
-                    />
-                  </div>
-                  <span className="text-[10px] text-neutral-400">{d.month}</span>
+                  <div
+                    className="w-full max-w-[32px] bg-primary-500 rounded-t-md transition-all duration-500 hover:bg-primary-600"
+                    style={{ height: `${Math.max(heightPx, 2)}px` }}
+                    title={`${d.month}: ${formatCurrency(d.amount)}`}
+                  />
+                  <span className="text-[10px] text-neutral-400 mt-1">{d.month}</span>
                 </div>
               );
             })}

@@ -21,12 +21,16 @@ const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
 }) => {
   const [localMin, setLocalMin] = useState(value[0]);
   const [localMax, setLocalMax] = useState(value[1]);
+  const [minInput, setMinInput] = useState(String(value[0]));
+  const [maxInput, setMaxInput] = useState(String(value[1]));
   const [dragging, setDragging] = useState<'min' | 'max' | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLocalMin(value[0]);
     setLocalMax(value[1]);
+    setMinInput(String(value[0]));
+    setMaxInput(String(value[1]));
   }, [value]);
 
   const getPercentage = useCallback(
@@ -60,11 +64,13 @@ const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
     const handleMouseMove = (e: MouseEvent) => {
       const newValue = getValueFromPosition(e.clientX);
       if (dragging === 'min') {
-        const clamped = Math.min(newValue, localMax - step);
-        setLocalMin(Math.max(min, clamped));
+        const clamped = Math.max(min, Math.min(newValue, localMax - step));
+        setLocalMin(clamped);
+        setMinInput(String(clamped));
       } else {
-        const clamped = Math.max(newValue, localMin + step);
-        setLocalMax(Math.min(max, clamped));
+        const clamped = Math.min(max, Math.max(newValue, localMin + step));
+        setLocalMax(clamped);
+        setMaxInput(String(clamped));
       }
     };
 
@@ -81,18 +87,34 @@ const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
     };
   }, [dragging, localMin, localMax, min, max, step, getValueFromPosition, onChange]);
 
-  const handleMinInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseInt(e.target.value) || min;
+  const commitMinInput = () => {
+    const val = parseInt(minInput);
+    if (isNaN(val)) {
+      setMinInput(String(localMin));
+      return;
+    }
     const clamped = Math.max(min, Math.min(val, localMax - step));
     setLocalMin(clamped);
+    setMinInput(String(clamped));
     onChange([clamped, localMax]);
   };
 
-  const handleMaxInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseInt(e.target.value) || max;
+  const commitMaxInput = () => {
+    const val = parseInt(maxInput);
+    if (isNaN(val)) {
+      setMaxInput(String(localMax));
+      return;
+    }
     const clamped = Math.min(max, Math.max(val, localMin + step));
     setLocalMax(clamped);
+    setMaxInput(String(clamped));
     onChange([localMin, clamped]);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent, commit: () => void) => {
+    if (e.key === 'Enter') {
+      commit();
+    }
   };
 
   const minPercent = getPercentage(localMin);
@@ -147,12 +169,13 @@ const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
               {currency}
             </span>
             <input
-              type="number"
-              value={localMin}
-              onChange={handleMinInput}
-              min={min}
-              max={localMax - step}
-              step={step}
+              type="text"
+              inputMode="numeric"
+              value={minInput}
+              onChange={(e) => setMinInput(e.target.value.replace(/[^0-9]/g, ''))}
+              onBlur={commitMinInput}
+              onKeyDown={(e) => handleInputKeyDown(e, commitMinInput)}
+              placeholder={String(min)}
               className="w-full px-3 py-2 text-sm text-neutral-600 outline-none"
             />
           </div>
@@ -165,12 +188,13 @@ const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
               {currency}
             </span>
             <input
-              type="number"
-              value={localMax}
-              onChange={handleMaxInput}
-              min={localMin + step}
-              max={max}
-              step={step}
+              type="text"
+              inputMode="numeric"
+              value={maxInput}
+              onChange={(e) => setMaxInput(e.target.value.replace(/[^0-9]/g, ''))}
+              onBlur={commitMaxInput}
+              onKeyDown={(e) => handleInputKeyDown(e, commitMaxInput)}
+              placeholder={String(max)}
               className="w-full px-3 py-2 text-sm text-neutral-600 outline-none"
             />
           </div>

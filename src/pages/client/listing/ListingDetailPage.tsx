@@ -2,12 +2,16 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   HiOutlineShare, HiMapPin, HiStar, HiCheck, HiChevronDown, HiChevronUp,
+  HiChevronLeft, HiChevronRight,
   HiOutlineFlag, HiOutlineCalendarDays, HiOutlineUserGroup,
   HiOutlineChatBubbleLeftRight,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
+import { getOptimizedImageUrl } from '../../../utils/cloudinaryImage';
+import StaticMap from '../../../components/ui/StaticMap';
 import { listingApi } from '../../../services/api/listingApi';
 import { useAppSelector } from '../../../store/hooks';
+import { messageApi } from '../../../services/api/messageApi';
 import WishlistHeart from '../../../components/listing/WishlistHeart';
 import ListingCard from '../../../components/listing/ListingCard';
 import RatingDisplay from '../../../components/listing/RatingDisplay';
@@ -32,12 +36,15 @@ const ListingDetailPage: React.FC = () => {
   const [similarListings, setSimilarListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [guestCount, setGuestCount] = useState('');
+  const [reviewSort, setReviewSort] = useState<'newest' | 'highest' | 'lowest'>('newest');
+  const [inquiryLoading, setInquiryLoading] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -86,6 +93,8 @@ const ListingDetailPage: React.FC = () => {
 
   const displayPrice = selectedPkg?.price || listing?.pricing.basePrice || 0;
 
+  const [dateError, setDateError] = useState(false);
+
   const handleReserve = () => {
     if (!isAuthenticated) {
       toast.error('Please log in to make a booking');
@@ -93,8 +102,14 @@ const ListingDetailPage: React.FC = () => {
       return;
     }
     if (!listing) return;
+    if (!eventDate) {
+      setDateError(true);
+      toast.error('Please select an event date');
+      return;
+    }
+    setDateError(false);
     const params = new URLSearchParams();
-    if (eventDate) params.set('date', eventDate);
+    params.set('date', eventDate);
     if (guestCount) params.set('guests', guestCount);
     if (selectedPackage) params.set('package', selectedPackage);
     navigate(`/booking/${listing._id}?${params.toString()}`);
@@ -108,6 +123,13 @@ const ListingDetailPage: React.FC = () => {
       toast.error('Unable to copy link');
     }
   };
+
+  const sortedReviews = useMemo(() => {
+    const sorted = [...reviews];
+    if (reviewSort === 'highest') sorted.sort((a, b) => b.rating - a.rating);
+    else if (reviewSort === 'lowest') sorted.sort((a, b) => a.rating - b.rating);
+    return sorted;
+  }, [reviews, reviewSort]);
 
   // Rating breakdown
   const ratingBreakdown = useMemo(() => {
@@ -195,46 +217,58 @@ const ListingDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Image Gallery */}
+      {/* Image Slider */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-2xl overflow-hidden">
-          {images.length >= 5 ? (
-            <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[420px]">
-              <div className="col-span-2 row-span-2">
-                <img
-                  src={images[0].url}
-                  alt={images[0].caption || listing.title}
-                  className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
-                  onClick={() => setShowAllPhotos(true)}
-                />
-              </div>
-              {images.slice(1, 5).map((img, idx) => (
-                <div key={img._id || idx}>
-                  <img
-                    src={img.url}
-                    alt={img.caption || `${listing.title} ${idx + 2}`}
-                    className="w-full h-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
-                    onClick={() => setShowAllPhotos(true)}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="h-[420px]">
+        <div className="relative rounded-2xl overflow-hidden group h-[420px] sm:h-[480px] bg-neutral-100">
+          {/* Slides */}
+          <div
+            className="flex h-full transition-transform duration-300 ease-in-out"
+            style={{ transform: `translateX(-${galleryIndex * 100}%)` }}
+          >
+            {images.map((img, idx) => (
               <img
-                src={images[0]?.url || 'https://placehold.co/1200x420?text=No+Image'}
-                alt={listing.title}
-                className="w-full h-full object-cover rounded-2xl"
+                key={img._id || idx}
+                src={getOptimizedImageUrl(img.url)}
+                alt={img.caption || `${listing.title} ${idx + 1}`}
+                className="h-full w-full shrink-0 object-cover cursor-pointer"
+                onClick={() => setShowAllPhotos(true)}
               />
-            </div>
+            ))}
+          </div>
+
+          {/* Arrows */}
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={() => setGalleryIndex(galleryIndex === 0 ? images.length - 1 : galleryIndex - 1)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/90 shadow-lg hover:bg-white hover:scale-105 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+              >
+                <HiChevronLeft className="h-5 w-5 text-neutral-700" />
+              </button>
+              <button
+                onClick={() => setGalleryIndex(galleryIndex === images.length - 1 ? 0 : galleryIndex + 1)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/90 shadow-lg hover:bg-white hover:scale-105 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+              >
+                <HiChevronRight className="h-5 w-5 text-neutral-700" />
+              </button>
+            </>
           )}
 
-          {images.length > 5 && (
+          {/* Counter + Show All */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3">
+            {images.length > 1 && (
+              <span className="bg-black/60 text-white text-xs font-medium px-3 py-1.5 rounded-full">
+                {galleryIndex + 1} / {images.length}
+              </span>
+            )}
+          </div>
+
+          {images.length > 1 && (
             <button
               onClick={() => setShowAllPhotos(true)}
-              className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-md text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+              className="absolute bottom-4 right-4 px-4 py-2 bg-white rounded-lg shadow-md text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
             >
-              Show all {images.length} photos
+              Show all photos
             </button>
           )}
         </div>
@@ -246,7 +280,7 @@ const ListingDetailPage: React.FC = () => {
           {images.map((img, idx) => (
             <img
               key={img._id || idx}
-              src={img.url}
+              src={getOptimizedImageUrl(img.url)}
               alt={img.caption || `Photo ${idx + 1}`}
               className="w-full rounded-xl object-cover aspect-[4/3]"
             />
@@ -369,11 +403,31 @@ const ListingDetailPage: React.FC = () => {
                 </div>
               )}
 
+              {/* Sort Reviews */}
+              {reviews.length > 1 && (
+                <div className="flex items-center gap-2 mb-6">
+                  <span className="text-sm text-neutral-400">Sort by:</span>
+                  {(['newest', 'highest', 'lowest'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setReviewSort(opt)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                        reviewSort === opt
+                          ? 'bg-neutral-700 text-white'
+                          : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
+                      }`}
+                    >
+                      {opt === 'newest' ? 'Newest' : opt === 'highest' ? 'Highest Rated' : 'Lowest Rated'}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Review List */}
-              {reviews.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                  {(showAllReviews ? reviews : reviews.slice(0, 4)).map((review) => (
-                    <div key={review._id} className="space-y-3">
+              {sortedReviews.length > 0 ? (
+                <div className="space-y-6">
+                  {(showAllReviews ? sortedReviews : sortedReviews.slice(0, 4)).map((review) => (
+                    <div key={review._id} className="space-y-3 pb-6 border-b border-neutral-100 last:border-0 last:pb-0">
                       <div className="flex items-center gap-3">
                         <Avatar
                           src={review.client.avatar?.url}
@@ -396,6 +450,17 @@ const ListingDetailPage: React.FC = () => {
                       <p className="text-neutral-500 text-sm leading-relaxed line-clamp-3">
                         {review.comment}
                       </p>
+                      {review.vendorReply && (
+                        <div className="mt-2 pl-3 border-l-2 border-primary-200 bg-primary-50/50 rounded-r-lg p-3">
+                          <p className="text-xs font-medium text-neutral-600 mb-1">Vendor Reply</p>
+                          <p className="text-sm text-neutral-500">{review.vendorReply.comment}</p>
+                          <p className="text-xs text-neutral-400 mt-1">
+                            {new Date(review.vendorReply.repliedAt).toLocaleDateString('en-US', {
+                              month: 'short', day: 'numeric', year: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -403,7 +468,7 @@ const ListingDetailPage: React.FC = () => {
                 <p className="text-neutral-400 text-sm">No reviews yet. Be the first to leave a review!</p>
               )}
 
-              {reviews.length > 4 && (
+              {sortedReviews.length > 4 && (
                 <button
                   onClick={() => setShowAllReviews(!showAllReviews)}
                   className="mt-6 px-6 py-2.5 border border-neutral-600 rounded-lg text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
@@ -428,9 +493,38 @@ const ListingDetailPage: React.FC = () => {
                   )}
                 </div>
               </div>
-              <div className="mt-4 bg-neutral-100 rounded-2xl h-48 flex items-center justify-center text-neutral-400 text-sm">
-                Map view
-              </div>
+              {listing.location?.coordinates?.length === 2 && (listing.location.coordinates[0] !== 0 || listing.location.coordinates[1] !== 0) ? (
+                <StaticMap
+                  lat={listing.location.coordinates[1]}
+                  lng={listing.location.coordinates[0]}
+                  className="mt-4"
+                />
+              ) : (
+                (() => {
+                  const addressQuery = encodeURIComponent([listing.address.street, listing.address.area, listing.address.city, listing.address.country].filter(Boolean).join(', '));
+                  return (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${addressQuery}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 block relative group cursor-pointer overflow-hidden rounded-2xl"
+                    >
+                      <iframe
+                        src={`https://maps.google.com/maps?q=${addressQuery}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                        className="w-full h-64 border-0 pointer-events-none"
+                        loading="lazy"
+                        title="Location map"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <span className="bg-white/90 shadow-md px-4 py-2 rounded-lg text-sm font-medium text-neutral-700 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <HiMapPin className="h-4 w-4" />
+                          Open in Google Maps
+                        </span>
+                      </div>
+                    </a>
+                  );
+                })()
+              )}
             </div>
           </div>
 
@@ -454,17 +548,24 @@ const ListingDetailPage: React.FC = () => {
 
                 {/* Date picker */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">Event Date</label>
+                  <label className="block text-sm font-medium text-neutral-600 mb-1.5">
+                    Event Date <span className="text-red-500">*</span>
+                  </label>
                   <div className="relative">
                     <HiOutlineCalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-400" />
                     <input
                       type="date"
                       value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
+                      onChange={(e) => { setEventDate(e.target.value); setDateError(false); }}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full pl-11 pr-4 py-3 border border-neutral-200 rounded-xl text-neutral-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className={`w-full pl-11 pr-4 py-3 border rounded-xl text-neutral-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                        dateError ? 'border-red-400 ring-1 ring-red-300' : 'border-neutral-200'
+                      }`}
                     />
                   </div>
+                  {dateError && (
+                    <p className="text-xs text-red-500 mt-1">Please select an event date</p>
+                  )}
                 </div>
 
                 {/* Guest count */}
@@ -526,16 +627,30 @@ const ListingDetailPage: React.FC = () => {
                   variant="outline"
                   fullWidth
                   leftIcon={<HiOutlineChatBubbleLeftRight className="h-5 w-5" />}
-                  onClick={() => {
+                  disabled={inquiryLoading}
+                  onClick={async () => {
                     if (!isAuthenticated) {
                       toast.error('Please log in to send a message');
                       navigate('/auth/login');
                       return;
                     }
-                    navigate('/inbox');
+                    if (!listing) return;
+                    setInquiryLoading(true);
+                    try {
+                      const res = await messageApi.createConversation({
+                        vendorId: listing.vendor._id,
+                        listingId: listing._id,
+                      });
+                      const conversationId = res.data.data.conversation._id;
+                      navigate(`/inbox?conversationId=${conversationId}`);
+                    } catch {
+                      toast.error('Failed to start conversation');
+                    } finally {
+                      setInquiryLoading(false);
+                    }
                   }}
                 >
-                  Send Inquiry
+                  {inquiryLoading ? 'Starting...' : 'Send Inquiry'}
                 </Button>
 
                 <button className="w-full text-center text-sm text-neutral-400 hover:text-neutral-600 flex items-center justify-center gap-1 transition-colors">

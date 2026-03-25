@@ -5,6 +5,7 @@ export const vendorApi = {
   getAll: (params?: Record<string, unknown>) => axiosInstance.get(VENDORS.BASE, { params }),
   getBySlug: (slug: string) => axiosInstance.get(`${VENDORS.BASE}/${slug}`),
   getMyProfile: () => axiosInstance.get(VENDORS.ME_PROFILE),
+  getDashboard: () => axiosInstance.get(VENDORS.ME_DASHBOARD),
   updateProfile: (data: Record<string, unknown>) => axiosInstance.patch(VENDORS.ME_PROFILE, data),
   toggleAvailability: () => axiosInstance.patch(VENDORS.ME_AVAILABILITY),
   getMyListings: (params?: Record<string, unknown>) => axiosInstance.get(VENDORS.ME_LISTINGS, { params }),

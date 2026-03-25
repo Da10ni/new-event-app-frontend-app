@@ -17,6 +17,7 @@ import {
   HiInformationCircle,
 } from 'react-icons/hi2';
 import { listingApi } from '../../../services/api/listingApi';
+import { uploadApi } from '../../../services/api/uploadApi';
 import { categoryApi } from '../../../services/api/categoryApi';
 import Input from '../../../components/ui/Input';
 import TextArea from '../../../components/ui/TextArea';
@@ -25,6 +26,7 @@ import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Chip from '../../../components/ui/Chip';
 import LoadingSpinner from '../../../components/feedback/LoadingSpinner';
+import LocationPicker from '../../../components/ui/LocationPicker';
 import toast from 'react-hot-toast';
 import type { Category, Listing } from '../../../types';
 
@@ -42,6 +44,7 @@ interface PhotoItem {
   isCover: boolean;
   isExisting: boolean;
   existingUrl?: string;
+  existingPublicId?: string;
 }
 
 interface FormData {
@@ -52,6 +55,8 @@ interface FormData {
   city: string;
   area: string;
   address: string;
+  locationLat: number;
+  locationLng: number;
   basePrice: string;
   priceUnit: string;
   packages: PackageItem[];
@@ -119,6 +124,8 @@ const EditListingPage: React.FC = () => {
     city: '',
     area: '',
     address: '',
+    locationLat: 0,
+    locationLng: 0,
     basePrice: '',
     priceUnit: 'per_event',
     packages: [],
@@ -150,6 +157,8 @@ const EditListingPage: React.FC = () => {
             city: listing.address?.city || '',
             area: listing.address?.area || '',
             address: listing.address?.street || '',
+            locationLat: listing.location?.coordinates?.[1] || 0,
+            locationLng: listing.location?.coordinates?.[0] || 0,
             basePrice: String(listing.pricing?.basePrice || ''),
             priceUnit: listing.pricing?.priceUnit || 'per_event',
             packages: (listing.pricing?.packages || []).map((p, i) => ({
@@ -172,6 +181,7 @@ const EditListingPage: React.FC = () => {
               isCover: img.isPrimary,
               isExisting: true,
               existingUrl: img.url,
+              existingPublicId: img.publicId,
             }))
           );
         }
@@ -223,8 +233,8 @@ const EditListingPage: React.FC = () => {
         toast.error(`${file.name} is not an image`);
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(`${file.name} exceeds 5MB limit`);
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} exceeds 10MB limit`);
         return;
       }
       newPhotos.push({
@@ -362,6 +372,34 @@ const EditListingPage: React.FC = () => {
 
     setSubmitting(true);
     try {
+      // Upload new photos to Cloudinary
+      const newPhotos = photos.filter((p) => !p.isExisting && p.file);
+      let uploadedImages: { url: string; publicId: string }[] = [];
+      if (newPhotos.length > 0) {
+        toast.loading('Uploading images...', { id: 'upload' });
+        const res = await uploadApi.uploadImages(newPhotos.map((p) => p.file!));
+        uploadedImages = res.data?.data?.images || [];
+        toast.dismiss('upload');
+      }
+
+      // Build combined images array: existing + newly uploaded
+      let newPhotoIdx = 0;
+      const allImages = photos.map((photo) => {
+        if (photo.isExisting) {
+          return {
+            url: photo.existingUrl!,
+            publicId: photo.existingPublicId!,
+            isPrimary: photo.isCover,
+          };
+        }
+        const uploaded = uploadedImages[newPhotoIdx++];
+        return {
+          url: uploaded.url,
+          publicId: uploaded.publicId,
+          isPrimary: photo.isCover,
+        };
+      });
+
       const updateData: Record<string, unknown> = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -373,6 +411,12 @@ const EditListingPage: React.FC = () => {
           area: formData.area || undefined,
           street: formData.address || undefined,
         },
+        ...(formData.locationLat && formData.locationLng && {
+          location: {
+            type: 'Point',
+            coordinates: [formData.locationLng, formData.locationLat],
+          },
+        }),
         pricing: {
           basePrice: Number(formData.basePrice),
           priceUnit: formData.priceUnit,
@@ -389,6 +433,7 @@ const EditListingPage: React.FC = () => {
           max: Number(formData.capacityMax),
         },
         amenities: formData.amenities,
+        images: allImages,
       };
 
       if (formData.additionalInfo) {
@@ -398,8 +443,13 @@ const EditListingPage: React.FC = () => {
       await listingApi.update(id!, updateData);
       toast.success('Listing updated successfully');
       navigate('/provider/listings');
-    } catch {
-      toast.error('Failed to update listing');
+    } catch (err: unknown) {
+      toast.dismiss('upload');
+      const error = err as { response?: { data?: { message?: string; errors?: { field: string; message: string }[] } } };
+      const msg = error?.response?.data?.errors?.map((e) => `${e.field}: ${e.message}`).join(', ')
+        || error?.response?.data?.message
+        || 'Failed to update listing';
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -489,6 +539,17 @@ const EditListingPage: React.FC = () => {
               error={errors.address}
               rows={3}
             />
+            <div>
+              <label className="block text-sm font-medium text-neutral-600 mb-1.5">Pin Location on Map</label>
+              <LocationPicker
+                lat={formData.locationLat}
+                lng={formData.locationLng}
+                onChange={(lat, lng) => {
+                  updateField('locationLat', lat);
+                  setFormData((prev) => ({ ...prev, locationLng: lng }));
+                }}
+              />
+            </div>
           </div>
         );
 

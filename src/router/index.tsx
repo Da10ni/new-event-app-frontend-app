@@ -21,6 +21,7 @@ import HomePage from '../pages/client/home/HomePage';
 import SearchResultsPage from '../pages/client/search/SearchResultsPage';
 import ListingDetailPage from '../pages/client/listing/ListingDetailPage';
 import BookingPage from '../pages/client/booking/BookingPage';
+import CheckoutPage from '../pages/client/booking/CheckoutPage';
 import MyBookingsPage from '../pages/client/booking/MyBookingsPage';
 import BookingDetailPage from '../pages/client/booking/BookingDetailPage';
 import WishlistPage from '../pages/client/wishlist/WishlistPage';
@@ -28,6 +29,7 @@ import InboxPage from '../pages/client/inbox/InboxPage';
 import ProfilePage from '../pages/client/profile/ProfilePage';
 import EditProfilePage from '../pages/client/profile/EditProfilePage';
 import SettingsPage from '../pages/client/profile/SettingsPage';
+import ReviewPage from '../pages/client/review/ReviewPage';
 
 // Provider Pages
 import DashboardPage from '../pages/provider/dashboard/DashboardPage';
@@ -39,6 +41,7 @@ import ProviderBookingDetailPage from '../pages/provider/bookings/ProviderBookin
 import EarningsPage from '../pages/provider/earnings/EarningsPage';
 import ReviewsPage from '../pages/provider/reviews/ReviewsPage';
 import ProviderProfilePage from '../pages/provider/profile/ProviderProfilePage';
+import ProviderInboxPage from '../pages/provider/inbox/ProviderInboxPage';
 
 // Static Pages
 import AboutPage from '../pages/static/AboutPage';
@@ -62,8 +65,10 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           { path: ROUTES.BOOKING, element: <BookingPage /> },
+          { path: ROUTES.CHECKOUT, element: <CheckoutPage /> },
           { path: ROUTES.MY_BOOKINGS, element: <MyBookingsPage /> },
           { path: ROUTES.BOOKING_DETAIL, element: <BookingDetailPage /> },
+          { path: ROUTES.REVIEW, element: <ReviewPage /> },
           { path: ROUTES.WISHLISTS, element: <WishlistPage /> },
           { path: ROUTES.INBOX, element: <InboxPage /> },
           { path: ROUTES.PROFILE, element: <ProfilePage /> },
@@ -105,6 +110,7 @@ export const router = createBrowserRouter([
               { path: ROUTES.PROVIDER_BOOKING_DETAIL, element: <ProviderBookingDetailPage /> },
               { path: ROUTES.PROVIDER_EARNINGS, element: <EarningsPage /> },
               { path: ROUTES.PROVIDER_REVIEWS, element: <ReviewsPage /> },
+              { path: ROUTES.PROVIDER_INBOX, element: <ProviderInboxPage /> },
               { path: ROUTES.PROVIDER_PROFILE, element: <ProviderProfilePage /> },
             ],
           },

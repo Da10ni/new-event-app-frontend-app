@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
+import { getOptimizedImageUrl } from '../../utils/cloudinaryImage';
 
 interface CarouselImage {
   url: string;
@@ -61,7 +62,7 @@ const ListingImageCarousel: React.FC<ListingImageCarouselProps> = ({
         {images.map((img, i) => (
           <img
             key={i}
-            src={img.url}
+            src={getOptimizedImageUrl(img.url)}
             alt={img.caption || `Image ${i + 1}`}
             className="h-full w-full shrink-0 object-cover"
             loading="lazy"

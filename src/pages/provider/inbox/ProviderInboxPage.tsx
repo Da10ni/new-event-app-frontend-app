@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { HiPaperAirplane, HiChevronLeft, HiOutlineChatBubbleLeftEllipsis, HiPencil, HiTrash, HiXMark, HiEllipsisVertical, HiArrowUturnLeft } from 'react-icons/hi2';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { useSocket } from '../../../contexts/SocketContext';
@@ -19,12 +18,11 @@ import EmptyState from '../../../components/feedback/EmptyState';
 import LoadingSpinner from '../../../components/feedback/LoadingSpinner';
 import type { Conversation, Message } from '../../../types/message.types';
 
-const InboxPage: React.FC = () => {
+const ProviderInboxPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { conversations, messages, loading, messagesLoading } = useAppSelector((state) => state.message);
   const { socket } = useSocket();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState('');
@@ -64,17 +62,6 @@ const InboxPage: React.FC = () => {
     };
     fetchConversations();
   }, [dispatch]);
-
-  useEffect(() => {
-    const conversationId = searchParams.get('conversationId');
-    if (conversationId && conversations.length > 0 && !activeConversation) {
-      const convo = conversations.find((c) => c._id === conversationId);
-      if (convo) {
-        handleSelectConversation(convo);
-        setSearchParams({}, { replace: true });
-      }
-    }
-  }, [conversations, searchParams]);
 
   useEffect(() => {
     if (!activeConversation) return;
@@ -201,10 +188,10 @@ const InboxPage: React.FC = () => {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !activeConversation) return;
     const text = newMessage.trim();
-    const replyToId = replyingTo?._id;
     setNewMessage('');
-    setReplyingTo(null);
     if (socket) socket.emit('stop_typing', { conversationId: activeConversation._id });
+    const replyToId = replyingTo?._id;
+    setReplyingTo(null);
     try {
       const res = await messageApi.sendMessage(activeConversation._id, text, replyToId);
       const sentMessage = res.data.data.message;
@@ -245,12 +232,6 @@ const InboxPage: React.FC = () => {
     setMenuOpenId(null);
   };
 
-  const cancelEditing = () => {
-    setEditingMessageId(null);
-    setEditText('');
-    if (inputRef.current) inputRef.current.style.height = 'auto';
-  };
-
   const startReplying = (msg: Message) => {
     setReplyingTo(msg);
     cancelEditing();
@@ -262,8 +243,17 @@ const InboxPage: React.FC = () => {
     setReplyingTo(null);
   };
 
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditText('');
+    if (inputRef.current) inputRef.current.style.height = 'auto';
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') { if (editingMessageId) cancelEditing(); else if (replyingTo) cancelReplying(); return; }
+    if (e.key === 'Escape') {
+      if (editingMessageId) { cancelEditing(); return; }
+      if (replyingTo) { cancelReplying(); return; }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (editingMessageId) handleEditMessage();
@@ -305,7 +295,7 @@ const InboxPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-4rem)] lg:h-[calc(100vh-5rem)] flex items-center justify-center">
+      <div className="flex items-center justify-center h-96">
         <LoadingSpinner />
       </div>
     );
@@ -313,18 +303,18 @@ const InboxPage: React.FC = () => {
 
   if (conversations.length === 0) {
     return (
-      <div className="h-[calc(100vh-4rem)] lg:h-[calc(100vh-5rem)] flex items-center justify-center">
+      <div className="flex items-center justify-center h-96">
         <EmptyState
           icon={<HiOutlineChatBubbleLeftEllipsis className="h-16 w-16 mx-auto" />}
-          title="No conversations yet"
-          description="When you message a vendor or receive a message, it will appear here."
+          title="No messages yet"
+          description="When a client sends you a message, it will appear here."
         />
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] lg:h-[calc(100vh-5rem)] bg-white flex overflow-hidden">
+    <div className="h-[calc(100vh-7rem)] bg-white flex overflow-hidden rounded-xl border border-neutral-100">
       {/* Conversation List */}
       <div className={`w-full md:w-80 border-r border-neutral-100 flex flex-col shrink-0 ${!showMobileList ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-neutral-100">
@@ -350,12 +340,7 @@ const InboxPage: React.FC = () => {
                     )}
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-0.5">
-                    <p className="text-xs text-neutral-400 truncate">
-                      {convo.listing ? (
-                        <span className="text-neutral-500 font-medium">{convo.listing.title} · </span>
-                      ) : null}
-                      {convo.lastMessage?.text || 'No messages yet'}
-                    </p>
+                    <p className="text-xs text-neutral-400 truncate">{convo.lastMessage?.text || 'No messages yet'}</p>
                     {unread > 0 && (
                       <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center shrink-0">{unread}</span>
                     )}
@@ -400,7 +385,8 @@ const InboxPage: React.FC = () => {
                 messages.map((msg) => {
                   const isMe = getSenderId(msg) === user?._id;
                   const isBeingEdited = editingMessageId === msg._id;
-                  const menuButton = !msg.isDeleted && (
+
+                  const menuButton = !msg.isDeleted ? (
                     <div className="relative opacity-0 group-hover:opacity-100 transition-opacity mb-1 shrink-0">
                       <button
                         onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === msg._id ? null : msg._id); }}
@@ -435,11 +421,12 @@ const InboxPage: React.FC = () => {
                         </div>
                       )}
                     </div>
-                  );
+                  ) : null;
 
                   return (
                     <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                       <div className="group flex items-end gap-1 max-w-[75%] sm:max-w-[60%]">
+                        {/* Menu on left for own messages */}
                         {isMe && menuButton}
                         {/* Message bubble */}
                         <div className={`px-4 py-3 rounded-2xl min-w-0 overflow-hidden ${
@@ -449,10 +436,9 @@ const InboxPage: React.FC = () => {
                               ? `bg-primary-500 text-white rounded-br-md ${isBeingEdited ? 'ring-2 ring-white/50' : ''}`
                               : 'bg-white text-neutral-700 border border-neutral-100 rounded-bl-md'
                         }`}>
-                          {msg.replyTo && (
-                            <div className={`mb-2 flex items-center gap-1.5 border-l-2 pl-2 text-xs overflow-hidden min-w-0 ${
-                              isMe ? 'border-white/30 text-white/50' : 'border-neutral-300 text-neutral-400'
-                            }`}>
+                          {/* Reply context */}
+                          {msg.replyTo && !msg.isDeleted && (
+                            <div className={`mb-2 flex items-center gap-1.5 border-l-2 pl-2 text-xs overflow-hidden min-w-0 ${isMe ? 'border-white/30 text-white/50' : 'border-neutral-300 text-neutral-400'}`}>
                               <HiArrowUturnLeft className="h-3 w-3 shrink-0" />
                               <p className="truncate min-w-0">{msg.replyTo.isDeleted ? 'This message was deleted' : msg.replyTo.text}</p>
                             </div>
@@ -465,6 +451,7 @@ const InboxPage: React.FC = () => {
                             {msg.isEdited && !msg.isDeleted && ' · edited'}
                           </p>
                         </div>
+                        {/* Menu on right for other's messages */}
                         {!isMe && menuButton}
                       </div>
                     </div>
@@ -475,6 +462,16 @@ const InboxPage: React.FC = () => {
 
             {/* Input area */}
             <div className="border-t border-neutral-100 bg-white shrink-0">
+              {/* Reply indicator */}
+              {replyingTo && !editingMessageId && (
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-neutral-50 border-b border-neutral-200 w-full max-w-full">
+                  <HiArrowUturnLeft className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+                  <span className="flex-1 w-0 text-xs text-neutral-400 truncate">{replyingTo.text}</span>
+                  <button onClick={cancelReplying} className="p-0.5 rounded-full hover:bg-neutral-200 text-neutral-400 shrink-0">
+                    <HiXMark className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
               {/* Edit indicator */}
               {editingMessageId && (
                 <div className="flex items-center justify-between px-4 py-1.5 bg-primary-50 border-b border-primary-100">
@@ -482,16 +479,6 @@ const InboxPage: React.FC = () => {
                     <HiPencil className="h-3.5 w-3.5" /> Editing
                   </span>
                   <button onClick={cancelEditing} className="p-0.5 rounded-full hover:bg-primary-100 text-primary-400">
-                    <HiXMark className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              )}
-              {/* Reply indicator */}
-              {replyingTo && !editingMessageId && (
-                <div className="flex items-center gap-2 px-4 py-1.5 bg-neutral-50 border-b border-neutral-200 w-full max-w-full">
-                  <HiArrowUturnLeft className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
-                  <span className="flex-1 w-0 text-xs text-neutral-400 truncate">{replyingTo.text}</span>
-                  <button onClick={cancelReplying} className="p-0.5 rounded-full hover:bg-neutral-200 text-neutral-400 shrink-0">
                     <HiXMark className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -525,7 +512,7 @@ const InboxPage: React.FC = () => {
             <div className="text-center">
               <HiOutlineChatBubbleLeftEllipsis className="h-16 w-16 text-neutral-200 mx-auto mb-4" />
               <p className="text-neutral-500 font-medium">Select a conversation</p>
-              <p className="text-sm text-neutral-400 mt-1">Choose a conversation from the list to start messaging</p>
+              <p className="text-sm text-neutral-400 mt-1">Choose a conversation to start messaging</p>
             </div>
           </div>
         )}
@@ -534,4 +521,4 @@ const InboxPage: React.FC = () => {
   );
 };
 
-export default InboxPage;
+export default ProviderInboxPage;

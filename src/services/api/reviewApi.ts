@@ -7,6 +7,8 @@ export const reviewApi = {
     axiosInstance.post<ApiResponse<{ review: Review }>>(REVIEWS.BASE, data),
   update: (id: string, data: Record<string, unknown>) =>
     axiosInstance.patch<ApiResponse<{ review: Review }>>(`${REVIEWS.BASE}/${id}`, data),
+  getByBooking: (bookingId: string) =>
+    axiosInstance.get<ApiResponse<{ review: Review }>>(`${REVIEWS.BASE}/booking/${bookingId}`),
   delete: (id: string) => axiosInstance.delete(`${REVIEWS.BASE}/${id}`),
   addVendorReply: (id: string, comment: string) =>
     axiosInstance.post<ApiResponse<{ review: Review }>>(`${REVIEWS.BASE}/${id}/reply`, { comment }),

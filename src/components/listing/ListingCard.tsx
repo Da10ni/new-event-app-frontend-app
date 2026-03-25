@@ -29,7 +29,7 @@ const ListingCard: React.FC<ListingCardProps> = ({
   return (
     <Link
       to={`/listing/${listing.slug}`}
-      className={`group block w-full ${className}`}
+      className={`group flex flex-col h-full w-full ${className}`}
     >
       {/* Image */}
       <div className="relative">
@@ -45,7 +45,7 @@ const ListingCard: React.FC<ListingCardProps> = ({
       </div>
 
       {/* Info */}
-      <div className="mt-3 space-y-1">
+      <div className="mt-3 flex flex-col flex-1 space-y-1">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-semibold text-neutral-600 line-clamp-1 group-hover:text-primary-500 transition-colors">
             {listing.title}
@@ -62,7 +62,7 @@ const ListingCard: React.FC<ListingCardProps> = ({
           price={listing.pricing.basePrice}
           currency={listing.pricing.currency}
           unit={listing.pricing.priceUnit}
-          className="mt-1"
+          className="mt-auto pt-1"
         />
       </div>
     </Link>

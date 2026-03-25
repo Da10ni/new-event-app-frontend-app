@@ -1,6 +1,29 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
+import {
+  HiChevronLeft, HiChevronRight,
+  HiOutlineBuildingLibrary, HiOutlineCamera, HiOutlineMusicalNote, HiOutlineTruck,
+  HiOutlineHomeModern, HiOutlinePaintBrush, HiOutlineSparkles, HiOutlineClipboardDocumentList,
+  HiOutlineSun, HiOutlineHeart, HiOutlineShoppingBag, HiOutlineSquares2X2,
+} from 'react-icons/hi2';
 import type { Category } from '../../types';
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  venues: <HiOutlineBuildingLibrary className="h-6 w-6" />,
+  catering: <HiOutlineShoppingBag className="h-6 w-6" />,
+  photography: <HiOutlineCamera className="h-6 w-6" />,
+  decoration: <HiOutlinePaintBrush className="h-6 w-6" />,
+  entertainment: <HiOutlineMusicalNote className="h-6 w-6" />,
+  'dj-music': <HiOutlineMusicalNote className="h-6 w-6" />,
+  'wedding-planning': <HiOutlineHeart className="h-6 w-6" />,
+  transport: <HiOutlineTruck className="h-6 w-6" />,
+  lighting: <HiOutlineSun className="h-6 w-6" />,
+  'makeup-artists': <HiOutlineSparkles className="h-6 w-6" />,
+  'makeup-artist': <HiOutlineSparkles className="h-6 w-6" />,
+  florist: <HiOutlineHeart className="h-6 w-6" />,
+  'beach-huts': <HiOutlineSun className="h-6 w-6" />,
+  'farm-houses': <HiOutlineHomeModern className="h-6 w-6" />,
+  'event-planners': <HiOutlineClipboardDocumentList className="h-6 w-6" />,
+};
 
 interface CategoryFilterBarProps {
   categories: Category[];
@@ -83,11 +106,7 @@ const CategoryFilterBar: React.FC<CategoryFilterBarProps> = ({
                 }
               `}
             >
-              {cat.icon?.url ? (
-                <img src={cat.icon.url} alt={cat.name} className="h-6 w-6 object-contain opacity-70" />
-              ) : (
-                <div className="h-6 w-6 rounded-full bg-neutral-100" />
-              )}
+              {CATEGORY_ICONS[cat.slug] || <HiOutlineSquares2X2 className="h-6 w-6" />}
               <span className="text-xs font-medium whitespace-nowrap">{cat.name}</span>
             </button>
           );

@@ -16,6 +16,8 @@ import {
   HiExclamationTriangle,
 } from 'react-icons/hi2';
 import { bookingApi } from '../../../services/api/bookingApi';
+import { reviewApi } from '../../../services/api/reviewApi';
+import StarRating from '../../../components/ui/StarRating';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
@@ -47,8 +49,10 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString('en-US', {
+const formatDate = (dateStr: string | undefined) => {
+  if (!dateStr) return 'N/A';
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -56,8 +60,10 @@ const formatDate = (dateStr: string) => {
   });
 };
 
-const formatShortDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleDateString('en-US', {
+const formatShortDate = (dateStr: string | undefined) => {
+  if (!dateStr) return 'N/A';
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -100,6 +106,7 @@ const ProviderBookingDetailPage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [internalNotes, setInternalNotes] = useState('');
   const [vendorResponse, setVendorResponse] = useState('');
+  const [reviewData, setReviewData] = useState<{ _id: string; rating: number; comment: string; title?: string; detailedRatings?: { quality?: number; communication?: number; valueForMoney?: number; punctuality?: number }; vendorReply?: { comment: string; repliedAt: string }; client: { _id: string; firstName: string; lastName: string; avatar?: { url: string } }; createdAt: string } | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     title: string;
@@ -111,6 +118,16 @@ const ProviderBookingDetailPage: React.FC = () => {
   useEffect(() => {
     fetchBooking();
   }, [id]);
+
+  useEffect(() => {
+    if (booking?.isReviewed && id) {
+      reviewApi.getByBooking(id)
+        .then((res) => setReviewData(res.data?.data?.review || null))
+        .catch(() => setReviewData(null));
+    } else {
+      setReviewData(null);
+    }
+  }, [booking?.isReviewed, id]);
 
   const fetchBooking = async () => {
     if (!id) return;
@@ -409,6 +426,57 @@ const ProviderBookingDetailPage: React.FC = () => {
                   {formatCurrency(booking.pricingSnapshot?.totalAmount || 0)}
                 </span>
               </div>
+
+              {/* Payment Status */}
+              {booking.paymentStatus && (
+                <div className="border-t border-neutral-100 pt-3 flex items-center justify-between">
+                  <span className="text-sm text-neutral-400 flex items-center gap-1.5">
+                    <HiCurrencyDollar className="h-4 w-4" />
+                    Payment Status
+                  </span>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    booking.paymentStatus === 'succeeded'
+                      ? 'bg-green-50 text-green-600'
+                      : booking.paymentStatus === 'refunded'
+                      ? 'bg-blue-50 text-blue-600'
+                      : booking.paymentStatus === 'failed'
+                      ? 'bg-red-50 text-red-500'
+                      : 'bg-amber-50 text-amber-600'
+                  }`}>
+                    {booking.paymentStatus === 'succeeded' ? 'Paid' : booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1)}
+                  </span>
+                </div>
+              )}
+
+              {/* Paid Date */}
+              {booking.paidAt && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-neutral-400">Paid On</span>
+                  <span className="text-xs text-neutral-500">
+                    {new Date(booking.paidAt).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric',
+                    })}{' '}
+                    {new Date(booking.paidAt).toLocaleTimeString('en-US', {
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              )}
+
+              {/* Refund Info */}
+              {booking.paymentStatus === 'refunded' && booking.refundedAt && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-neutral-400">Refunded On</span>
+                  <span className="text-xs text-neutral-500">
+                    {new Date(booking.refundedAt).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric',
+                    })}{' '}
+                    {new Date(booking.refundedAt).toLocaleTimeString('en-US', {
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              )}
             </div>
           </Card>
 
@@ -516,6 +584,79 @@ const ProviderBookingDetailPage: React.FC = () => {
               </div>
             </div>
           </Card>
+
+          {/* Client Review */}
+          {booking.isReviewed && reviewData && (
+            <Card padding="md">
+              <h3 className="text-base font-semibold text-neutral-600 mb-4">Client Review</h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Avatar
+                    src={reviewData.client?.avatar?.url}
+                    name={`${reviewData.client?.firstName} ${reviewData.client?.lastName}`}
+                    size="sm"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-neutral-600">
+                      {reviewData.client?.firstName} {reviewData.client?.lastName}
+                    </p>
+                    <p className="text-xs text-neutral-400">
+                      {new Date(reviewData.createdAt).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                <StarRating rating={reviewData.rating} size="sm" />
+
+                {reviewData.title && (
+                  <p className="text-sm font-semibold text-neutral-700">{reviewData.title}</p>
+                )}
+
+                <p className="text-sm text-neutral-500 leading-relaxed whitespace-pre-wrap">
+                  {reviewData.comment}
+                </p>
+
+                {reviewData.detailedRatings && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {reviewData.detailedRatings.quality != null && (
+                      <span className="text-xs bg-neutral-100 text-neutral-500 px-2 py-1 rounded-full">
+                        Quality: {reviewData.detailedRatings.quality}/5
+                      </span>
+                    )}
+                    {reviewData.detailedRatings.communication != null && (
+                      <span className="text-xs bg-neutral-100 text-neutral-500 px-2 py-1 rounded-full">
+                        Communication: {reviewData.detailedRatings.communication}/5
+                      </span>
+                    )}
+                    {reviewData.detailedRatings.valueForMoney != null && (
+                      <span className="text-xs bg-neutral-100 text-neutral-500 px-2 py-1 rounded-full">
+                        Value: {reviewData.detailedRatings.valueForMoney}/5
+                      </span>
+                    )}
+                    {reviewData.detailedRatings.punctuality != null && (
+                      <span className="text-xs bg-neutral-100 text-neutral-500 px-2 py-1 rounded-full">
+                        Punctuality: {reviewData.detailedRatings.punctuality}/5
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {reviewData.vendorReply && (
+                  <div className="mt-2 pl-3 border-l-2 border-primary-200 bg-primary-50/50 rounded-r-lg p-3">
+                    <p className="text-xs font-medium text-neutral-600 mb-1">Your Reply</p>
+                    <p className="text-sm text-neutral-500">{reviewData.vendorReply.comment}</p>
+                    <p className="text-xs text-neutral-400 mt-1">
+                      {new Date(reviewData.vendorReply.repliedAt).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
         </div>
       </div>
 

@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
+import ScrollToTop from '../components/ScrollToTop';
 
 const AuthLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col">
+      <ScrollToTop />
       {/* Top bar with logo */}
       <div className="py-6 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="inline-block">

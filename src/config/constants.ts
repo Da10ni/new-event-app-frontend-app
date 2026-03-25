@@ -4,8 +4,14 @@ export const APP_VERSION = '1.0.0';
 export const ROLES = { CLIENT: 'client', VENDOR: 'vendor', ADMIN: 'admin' } as const;
 
 export const BOOKING_STATUSES = {
-  INQUIRY: 'inquiry', PENDING: 'pending', CONFIRMED: 'confirmed',
-  REJECTED: 'rejected', CANCELLED: 'cancelled', COMPLETED: 'completed',
+  INQUIRY: 'inquiry', PENDING: 'pending', ACCEPTED: 'accepted',
+  CONFIRMED: 'confirmed', REJECTED: 'rejected', CANCELLED: 'cancelled',
+  COMPLETED: 'completed',
+} as const;
+
+export const PAYMENT_STATUSES = {
+  PENDING: 'pending', PROCESSING: 'processing', SUCCEEDED: 'succeeded',
+  FAILED: 'failed', REFUNDED: 'refunded',
 } as const;
 
 export const LISTING_STATUSES = {

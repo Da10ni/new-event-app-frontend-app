@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   HiSquares2X2,
@@ -6,6 +6,7 @@ import {
   HiCalendarDays,
   HiBanknotes,
   HiStar,
+  HiChatBubbleLeftRight,
   HiUserCircle,
   HiBars3,
   HiXMark,
@@ -14,6 +15,8 @@ import {
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { clearAuth } from '../../../store/slices/authSlice';
 import { authApi } from '../../../services/api/authApi';
+import { messageApi } from '../../../services/api/messageApi';
+import { useSocket } from '../../../contexts/SocketContext';
 import Avatar from '../../../components/ui/Avatar';
 import Badge from '../../../components/ui/Badge';
 
@@ -21,6 +24,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  badgeKey?: string;
 }
 
 const navItems: NavItem[] = [
@@ -29,6 +33,7 @@ const navItems: NavItem[] = [
   { label: 'Bookings', href: '/provider/bookings', icon: <HiCalendarDays className="h-5 w-5" /> },
   { label: 'Earnings', href: '/provider/earnings', icon: <HiBanknotes className="h-5 w-5" /> },
   { label: 'Reviews', href: '/provider/reviews', icon: <HiStar className="h-5 w-5" /> },
+  { label: 'Messages', href: '/provider/inbox', icon: <HiChatBubbleLeftRight className="h-5 w-5" />, badgeKey: 'messages' },
   { label: 'Profile', href: '/provider/profile', icon: <HiUserCircle className="h-5 w-5" /> },
 ];
 
@@ -38,9 +43,50 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [badgeCounts, setBadgeCounts] = useState<Record<string, number>>({});
   const { user, role, refreshToken } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { socket } = useSocket();
+
+  const fetchCounts = useCallback(async () => {
+    try {
+      const res = await messageApi.getUnreadCount();
+      setBadgeCounts({ messages: res.data.data.count || 0 });
+    } catch {
+      // silently fail
+    }
+  }, []);
+
+  // Fetch counts on mount
+  useEffect(() => {
+    fetchCounts();
+  }, [fetchCounts]);
+
+  // Refresh message count on real-time events
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = () => {
+      messageApi.getUnreadCount().then((res) => {
+        setBadgeCounts((prev) => ({ ...prev, messages: res.data.data.count || 0 }));
+      }).catch(() => {});
+    };
+
+    const handleConversationUpdated = () => {
+      messageApi.getUnreadCount().then((res) => {
+        setBadgeCounts((prev) => ({ ...prev, messages: res.data.data.count || 0 }));
+      }).catch(() => {});
+    };
+
+    socket.on('new_message', handleNewMessage);
+    socket.on('conversation_updated', handleConversationUpdated);
+
+    return () => {
+      socket.off('new_message', handleNewMessage);
+      socket.off('conversation_updated', handleConversationUpdated);
+    };
+  }, [socket]);
 
   const handleLogout = async () => {
     try {
@@ -78,24 +124,36 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.href}
-            to={item.href}
-            onClick={() => setMobileOpen(false)}
-            className={({ isActive }) => `
-              flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors
-              ${
-                isActive
-                  ? 'bg-primary-50 text-primary-600'
-                  : 'text-neutral-400 hover:bg-neutral-50 hover:text-neutral-600'
-              }
-            `}
-          >
-            {item.icon}
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+        {navItems.map((item) => {
+          const count = item.badgeKey ? badgeCounts[item.badgeKey] || 0 : 0;
+          return (
+            <NavLink
+              key={item.href}
+              to={item.href}
+              onClick={() => setMobileOpen(false)}
+            >
+              {({ isActive }) => {
+                const showBadge = count > 0 && !isActive;
+                return (
+                  <span className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive ? 'bg-primary-50 text-primary-600' : 'text-neutral-400 hover:bg-neutral-50 hover:text-neutral-600'}`}>
+                    <span className="relative">
+                      {item.icon}
+                      {showBadge && (
+                        <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
+                      )}
+                    </span>
+                    <span className="flex-1">{item.label}</span>
+                    {showBadge && (
+                      <span className="min-w-5 h-5 px-1.5 rounded-full bg-green-500 text-white text-xs font-semibold flex items-center justify-center">
+                        {count > 99 ? '99+' : count}
+                      </span>
+                    )}
+                  </span>
+                );
+              }}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Bottom logout */}

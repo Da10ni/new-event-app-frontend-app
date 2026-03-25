@@ -6,5 +6,18 @@ export interface Booking {
   eventDate: string; eventEndDate?: string; eventType?: string; guestCount?: number;
   pricingSnapshot: { basePrice: number; totalAmount: number; currency: string };
   status: string; clientMessage?: string; vendorResponse?: string; isReviewed: boolean; createdAt: string;
+  paymentStatus?: 'pending' | 'processing' | 'succeeded' | 'failed' | 'refunded';
+  paymentIntentId?: string;
+  transactionId?: string;
+  paidAt?: string;
+  refundId?: string;
+  refundedAt?: string;
+}
+
+export interface PaymentIntentResponse {
+  clientSecret: string;
+  paymentIntentId: string;
+  amount: number;
+  currency: string;
 }
 export interface CreateBookingRequest { listing: string; eventDate: string; eventEndDate?: string; eventType?: string; guestCount?: number; clientMessage?: string; specialRequests?: string; }

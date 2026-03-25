@@ -128,6 +128,7 @@ const ProviderProfilePage: React.FC = () => {
 
       if (profile) {
         setProfileData(profile);
+        dispatch(setVendor(profile));
         setFormData({
           businessName: profile.businessName || '',
           description: profile.description || '',

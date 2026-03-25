@@ -1,6 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiMagnifyingGlass, HiCalendarDays, HiCheckBadge, HiSparkles, HiArrowRight, HiChevronLeft, HiChevronRight, HiMapPin, HiShieldCheck, HiClock, HiCurrencyDollar, HiStar, HiUserGroup } from 'react-icons/hi2';
+import {
+  HiMagnifyingGlass, HiCalendarDays, HiCheckBadge, HiSparkles, HiArrowRight,
+  HiChevronLeft, HiChevronRight, HiMapPin, HiShieldCheck, HiClock, HiCurrencyDollar,
+  HiStar, HiUserGroup,
+  HiOutlineBuildingLibrary, HiOutlineCamera, HiOutlineMusicalNote, HiOutlineTruck,
+  HiOutlineHomeModern, HiOutlinePaintBrush, HiOutlineSparkles, HiOutlineClipboardDocumentList,
+  HiOutlineSun, HiOutlineHeart, HiOutlineShoppingBag, HiOutlineSquares2X2,
+} from 'react-icons/hi2';
 import { listingApi } from '../../../services/api/listingApi';
 import { categoryApi } from '../../../services/api/categoryApi';
 import { useAppDispatch } from '../../../store/hooks';
@@ -10,15 +17,6 @@ import ListingCard from '../../../components/listing/ListingCard';
 import Skeleton from '../../../components/ui/Skeleton';
 import Button from '../../../components/ui/Button';
 import type { Listing, Category } from '../../../types';
-
-const POPULAR_CITIES = [
-  { name: 'Karachi', image: 'https://images.pexels.com/photos/34877361/pexels-photo-34877361.jpeg?auto=compress&cs=tinysrgb&w=600', listings: '500+' },
-  { name: 'Lahore', image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=600&q=80', listings: '400+' },
-  { name: 'Islamabad', image: 'https://images.pexels.com/photos/28536082/pexels-photo-28536082.jpeg?auto=compress&cs=tinysrgb&w=600', listings: '350+'},
-  { name: 'Rawalpindi', image: 'https://images.pexels.com/photos/8583526/pexels-photo-8583526.jpeg?auto=compress&cs=tinysrgb&w=600' , listings: '200+' },
-  { name: 'Faisalabad', image: 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=600&q=80', listings: '180+' },
-  { name: 'Multan', image: 'https://images.pexels.com/photos/19854844/pexels-photo-19854844.jpeg?auto=compress&cs=tinysrgb&w=600', listings: '120+' },
-];
 
 const HOW_IT_WORKS = [
   {
@@ -47,9 +45,22 @@ const WHY_CHOOSE = [
   { icon: <HiSparkles className="h-7 w-7" />, title: 'Wide Selection', description: 'From venues to caterers, photographers to decor specialists.' },
 ];
 
-const CATEGORY_ICONS: Record<string, string> = {
-  venues: '🏛️', catering: '🍽️', photography: '📸', decoration: '🎨', entertainment: '🎵',
-  'wedding-planning': '💍', transport: '🚗', lighting: '💡', 'makeup-artist': '💄', florist: '🌸',
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  venues: <HiOutlineBuildingLibrary className="h-7 w-7 text-primary-500" />,
+  catering: <HiOutlineShoppingBag className="h-7 w-7 text-primary-500" />,
+  photography: <HiOutlineCamera className="h-7 w-7 text-primary-500" />,
+  decoration: <HiOutlinePaintBrush className="h-7 w-7 text-primary-500" />,
+  entertainment: <HiOutlineMusicalNote className="h-7 w-7 text-primary-500" />,
+  'dj-music': <HiOutlineMusicalNote className="h-7 w-7 text-primary-500" />,
+  'wedding-planning': <HiOutlineHeart className="h-7 w-7 text-primary-500" />,
+  transport: <HiOutlineTruck className="h-7 w-7 text-primary-500" />,
+  lighting: <HiOutlineSun className="h-7 w-7 text-primary-500" />,
+  'makeup-artists': <HiOutlineSparkles className="h-7 w-7 text-primary-500" />,
+  'makeup-artist': <HiOutlineSparkles className="h-7 w-7 text-primary-500" />,
+  florist: <HiOutlineHeart className="h-7 w-7 text-primary-500" />,
+  'beach-huts': <HiOutlineSun className="h-7 w-7 text-primary-500" />,
+  'farm-houses': <HiOutlineHomeModern className="h-7 w-7 text-primary-500" />,
+  'event-planners': <HiOutlineClipboardDocumentList className="h-7 w-7 text-primary-500" />,
 };
 
 const HomePage: React.FC = () => {
@@ -57,8 +68,10 @@ const HomePage: React.FC = () => {
   const dispatch = useAppDispatch();
   const [featured, setFeatured] = useState<Listing[]>([]);
   const [categories, setCategoriesLocal] = useState<Category[]>([]);
+  const [cities, setCities] = useState<{ name: string; listings: number; image: string }[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loadingCities, setLoadingCities] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const featuredRef = useRef<HTMLDivElement>(null);
 
@@ -89,8 +102,20 @@ const HomePage: React.FC = () => {
       }
     };
 
+    const fetchCities = async () => {
+      try {
+        const res = await listingApi.getCities();
+        setCities(res.data.data.cities);
+      } catch {
+        // Silently handle error
+      } finally {
+        setLoadingCities(false);
+      }
+    };
+
     fetchFeatured();
     fetchCategories();
+    fetchCities();
   }, [dispatch]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -183,12 +208,8 @@ const HomePage: React.FC = () => {
                 onClick={() => navigate(`/search?category=${category.slug}`)}
                 className="group flex flex-col items-center gap-3 p-6 rounded-2xl border border-neutral-100 bg-white hover:shadow-lg hover:border-primary-100 transition-all duration-300"
               >
-                <div className="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center text-2xl group-hover:bg-primary-100 transition-colors">
-                  {category.icon?.url ? (
-                    <img src={category.icon.url} alt={category.name} className="h-7 w-7 object-contain" />
-                  ) : (
-                    <span>{CATEGORY_ICONS[category.slug] || '📋'}</span>
-                  )}
+                <div className="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center group-hover:bg-primary-100 transition-colors">
+                  {CATEGORY_ICONS[category.slug] || <HiOutlineSquares2X2 className="h-7 w-7 text-primary-500" />}
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-semibold text-neutral-600 group-hover:text-primary-500 transition-colors">
@@ -245,7 +266,7 @@ const HomePage: React.FC = () => {
               {featured.map((listing) => (
                 <div
                   key={listing._id}
-                  className="min-w-[280px] sm:min-w-[300px] lg:min-w-[310px] snap-start"
+                  className="min-w-[280px] sm:min-w-[300px] lg:min-w-[310px] max-w-[310px] snap-start"
                 >
                   <ListingCard listing={listing} />
                 </div>
@@ -289,38 +310,52 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Popular Cities Section */}
-      <section className="bg-neutral-50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold text-neutral-600">Popular Cities</h2>
-            <p className="text-neutral-400 mt-2">Explore top event destinations across Pakistan</p>
-          </div>
+      {(loadingCities || cities.length > 0) && (
+        <section className="bg-neutral-50 py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold text-neutral-600">Popular Cities</h2>
+              <p className="text-neutral-400 mt-2">Explore top event destinations across Pakistan</p>
+            </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {POPULAR_CITIES.map((city) => (
-              <button
-                key={city.name}
-                onClick={() => navigate(`/search?city=${encodeURIComponent(city.name)}`)}
-                className="group relative rounded-2xl overflow-hidden aspect-[4/5] cursor-pointer"
-              >
-                <img
-                  src={city.image}
-                  alt={city.name}
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h3 className="text-white font-semibold text-base">{city.name}</h3>
-                  <div className="flex items-center gap-1 mt-1">
-                    <HiMapPin className="h-3.5 w-3.5 text-white/70" />
-                    <span className="text-white/70 text-xs">{city.listings} listings</span>
-                  </div>
-                </div>
-              </button>
-            ))}
+            {loadingCities ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <Skeleton key={i} variant="rect" height={220} className="rounded-2xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {cities.map((city) => (
+                  <button
+                    key={city.name}
+                    onClick={() => navigate(`/search?city=${encodeURIComponent(city.name)}`)}
+                    className="group relative rounded-2xl overflow-hidden aspect-[4/5] cursor-pointer"
+                  >
+                    {city.image ? (
+                      <img
+                        src={city.image}
+                        alt={city.name}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary-400 to-primary-600" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <h3 className="text-white font-semibold text-base">{city.name}</h3>
+                      <div className="flex items-center gap-1 mt-1">
+                        <HiMapPin className="h-3.5 w-3.5 text-white/70" />
+                        <span className="text-white/70 text-xs">{city.listings} listing{city.listings !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Why Choose Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">

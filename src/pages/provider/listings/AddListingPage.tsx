@@ -26,6 +26,7 @@ import Select from '../../../components/ui/Select';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Chip from '../../../components/ui/Chip';
+import LocationPicker from '../../../components/ui/LocationPicker';
 import toast from 'react-hot-toast';
 import type { Category } from '../../../types';
 
@@ -53,6 +54,8 @@ interface FormData {
   city: string;
   area: string;
   address: string;
+  locationLat: number;
+  locationLng: number;
   // Step 3 - Photos (handled separately)
   // Step 4 - Pricing
   basePrice: string;
@@ -124,6 +127,8 @@ const AddListingPage: React.FC = () => {
     city: '',
     area: '',
     address: '',
+    locationLat: 0,
+    locationLng: 0,
     basePrice: '',
     priceUnit: 'per_event',
     packages: [],
@@ -348,6 +353,12 @@ const AddListingPage: React.FC = () => {
         ...(formData.area && { area: formData.area }),
         ...(formData.address && { street: formData.address }),
       },
+      ...(formData.locationLat && formData.locationLng && {
+        location: {
+          type: 'Point',
+          coordinates: [formData.locationLng, formData.locationLat],
+        },
+      }),
       pricing: {
         basePrice: Number(formData.basePrice),
         priceUnit: formData.priceUnit,
@@ -496,6 +507,17 @@ const AddListingPage: React.FC = () => {
               error={errors.address}
               rows={3}
             />
+            <div>
+              <label className="block text-sm font-medium text-neutral-600 mb-1.5">Pin Location on Map</label>
+              <LocationPicker
+                lat={formData.locationLat}
+                lng={formData.locationLng}
+                onChange={(lat, lng) => {
+                  updateField('locationLat', lat);
+                  setFormData((prev) => ({ ...prev, locationLng: lng }));
+                }}
+              />
+            </div>
           </div>
         );
 

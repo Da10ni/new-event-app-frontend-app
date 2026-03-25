@@ -6,6 +6,7 @@ export const listingApi = {
   getAll: (params?: ListingFilter) => axiosInstance.get<ApiResponse<{ listings: Listing[] }>>(LISTINGS.BASE, { params }),
   getBySlug: (slug: string) => axiosInstance.get<ApiResponse<{ listing: Listing }>>(`${LISTINGS.BASE}/${slug}`),
   getFeatured: () => axiosInstance.get<ApiResponse<{ listings: Listing[] }>>(LISTINGS.FEATURED),
+  getCities: () => axiosInstance.get<ApiResponse<{ cities: { name: string; listings: number; image: string }[] }>>(LISTINGS.CITIES),
   create: (data: Record<string, unknown>) => axiosInstance.post(LISTINGS.BASE, data),
   update: (id: string, data: Record<string, unknown>) => axiosInstance.patch(`${LISTINGS.BASE}/${id}`, data),
   delete: (id: string) => axiosInstance.delete(`${LISTINGS.BASE}/${id}`),

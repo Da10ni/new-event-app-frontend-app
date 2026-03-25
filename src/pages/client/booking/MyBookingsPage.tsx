@@ -12,11 +12,12 @@ import EmptyState from '../../../components/feedback/EmptyState';
 import type { Booking, PaginationMeta } from '../../../types';
 import { BOOKING_STATUSES } from '../../../config';
 
-type TabKey = 'upcoming' | 'past' | 'cancelled' | 'all';
+type TabKey = 'upcoming' | 'confirmed' | 'past' | 'cancelled' | 'all';
 
 const statusBadgeVariant = (status: string): 'default' | 'success' | 'warning' | 'error' | 'info' => {
   switch (status) {
-    case BOOKING_STATUSES.CONFIRMED: return 'success';
+    case BOOKING_STATUSES.CONFIRMED:
+    case BOOKING_STATUSES.ACCEPTED: return 'success';
     case BOOKING_STATUSES.PENDING:
     case BOOKING_STATUSES.INQUIRY: return 'warning';
     case BOOKING_STATUSES.CANCELLED:
@@ -40,7 +41,8 @@ const MyBookingsPage: React.FC = () => {
       setLoading(true);
       try {
         const params: Record<string, unknown> = { page, limit: 10 };
-        if (activeTab === 'upcoming') params.status = 'pending,confirmed,inquiry';
+        if (activeTab === 'upcoming') params.status = 'pending,accepted,inquiry';
+        if (activeTab === 'confirmed') params.status = 'confirmed';
         if (activeTab === 'past') params.status = 'completed';
         if (activeTab === 'cancelled') params.status = 'cancelled,rejected';
 
@@ -142,6 +144,7 @@ const MyBookingsPage: React.FC = () => {
     if (bookings.length === 0) {
       const emptyMessages: Record<TabKey, { title: string; description: string }> = {
         upcoming: { title: 'No upcoming bookings', description: 'When you book an event service, it will appear here.' },
+        confirmed: { title: 'No confirmed bookings', description: 'Bookings confirmed by vendors will appear here.' },
         past: { title: 'No past bookings', description: 'Your completed bookings will show up here.' },
         cancelled: { title: 'No cancelled bookings', description: 'Cancelled bookings will appear here.' },
         all: { title: 'No bookings yet', description: 'Start exploring and book your first event service!' },
@@ -176,6 +179,7 @@ const MyBookingsPage: React.FC = () => {
 
   const tabs = [
     { key: 'upcoming', label: 'Upcoming', content: renderTabContent() },
+    { key: 'confirmed', label: 'Confirmed', content: renderTabContent() },
     { key: 'past', label: 'Past', content: renderTabContent() },
     { key: 'cancelled', label: 'Cancelled', content: renderTabContent() },
     { key: 'all', label: 'All', content: renderTabContent() },

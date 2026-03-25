@@ -5,6 +5,7 @@ import {
   HiPaperAirplane,
   HiChevronDown,
   HiChevronUp,
+  HiArrowsUpDown,
 } from 'react-icons/hi2';
 import { vendorApi } from '../../../services/api/vendorApi';
 import { listingApi } from '../../../services/api/listingApi';
@@ -40,6 +41,7 @@ const ReviewsPage: React.FC = () => {
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<'newest' | 'highest' | 'lowest'>('newest');
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -99,17 +101,31 @@ const ReviewsPage: React.FC = () => {
   }, [reviews]);
 
   const filteredReviews = useMemo(() => {
+    let result: Review[];
     switch (filter) {
       case 'positive':
-        return reviews.filter((r) => r.rating >= 4);
+        result = reviews.filter((r) => r.rating >= 4);
+        break;
       case 'neutral':
-        return reviews.filter((r) => r.rating === 3);
+        result = reviews.filter((r) => r.rating === 3);
+        break;
       case 'negative':
-        return reviews.filter((r) => r.rating <= 2);
+        result = reviews.filter((r) => r.rating <= 2);
+        break;
       default:
-        return reviews;
+        result = [...reviews];
     }
-  }, [reviews, filter]);
+
+    if (sortBy === 'highest') {
+      result.sort((a, b) => b.rating - a.rating || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else if (sortBy === 'lowest') {
+      result.sort((a, b) => a.rating - b.rating || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else {
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    return result;
+  }, [reviews, filter, sortBy]);
 
   const totalPages = Math.ceil(filteredReviews.length / itemsPerPage);
   const paginatedReviews = filteredReviews.slice(
@@ -219,8 +235,9 @@ const ReviewsPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* Filter Tabs */}
-      <div className="flex border-b border-neutral-100 overflow-x-auto">
+      {/* Filter Tabs + Sort */}
+      <div className="flex items-center justify-between border-b border-neutral-100 overflow-x-auto">
+        <div className="flex">
         {filterTabs.map((tab) => (
           <button
             key={tab.key}
@@ -249,6 +266,16 @@ const ReviewsPage: React.FC = () => {
             )}
           </button>
         ))}
+        </div>
+
+        {/* Sort Button */}
+        <button
+          onClick={() => setSortBy((prev) => prev === 'newest' ? 'highest' : prev === 'highest' ? 'lowest' : 'newest')}
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700 transition-colors whitespace-nowrap cursor-pointer"
+        >
+          <HiArrowsUpDown className="h-4 w-4" />
+          {sortBy === 'highest' ? 'Highest First' : sortBy === 'lowest' ? 'Lowest First' : 'Newest First'}
+        </button>
       </div>
 
       {/* Reviews List */}
